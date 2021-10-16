@@ -45,8 +45,8 @@ def newtonConstStep(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_it
     while any (i>error_margin for i in diff) and num_of_iterations<max_num_of_iter:
         prev_x = x
 
-        # d = grad(x)*hess(x)**(-1)
-        d = np.dot(ndt.Gradient(func)(prev_x, alpha, n), np.linalg.inv(ndt.Hessian(f)(prev_x, alpha, n)))
+        # d = hess(x)**(-1)*grad(x)
+        d = np.dot(np.linalg.inv(ndt.Hessian(f)(prev_x, alpha, n)), ndt.Gradient(func)(prev_x, alpha, n))
 
         x = [prev_x[i] - step*d[i] for i in range(len(x))]
         diff = [abs(prev_x[i]-x[i]) for i in range(len(x))]
@@ -62,6 +62,8 @@ def newtonAdaptStep(x0, func, grad, inv_hess, step, error_margin=0.0001):
     x = x0
     diff = x0
     prev_x = x
+    t = 1
+    v = -1
     while func(x+t*v)>func(x)+alpha*t*grad(x)^T*v:
         t = betha*t
     while diff>error_margin:
