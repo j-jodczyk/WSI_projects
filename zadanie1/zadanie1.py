@@ -127,21 +127,23 @@ def f(x, alpha, n):
 def main():
     alpha = [1, 10, 100]
     n = [10, 20]
-    step = np.linspace(0, 1, 11)
-    x0 = [10]*10
+    step = np.linspace(0, 1, 8)
+    x0 = [10]*20
     #for a in alpha:
     #    for b in n:
     fig = plt.figure()
+    fig.suptitle("alpha=1, n=20")
     for i in range(1, len(step)-1):
-        min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, step[i], alpha[0], n[0])
-        ax = fig.add_subplot(3, 3, i)
+        min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, step[i], alpha[0], n[1])
+        ax = fig.add_subplot(2, 3, i)
         x = np.arange(0, 10)
         y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
         plt.plot(x, y)
-        plt.plot(min[1], f(min, alpha[0], n[0]), 'g*')
+        plt.plot(min[0], f(min, alpha[0], n[1]), 'g*')
         plt.plot(next_x, next_y, 'r')
         ax.title.set_text(f"step={step[i]}")
-        ax.title.set_fontsize(5)
+        ax.title.set_fontsize(7)
+        ax.tick_params(labelsize=7)
 
     #plt.plot(range(num_of_iter), y)
 
