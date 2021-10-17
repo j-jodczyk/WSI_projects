@@ -34,7 +34,7 @@ def gradientDescend(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_it
     return (x, y, num_of_iterations)
 
 
-# chyba działa
+# odwrócony hesian = 0, co w takim razie?
 def newtonConstStep(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_iter=1000):
     x = x0
     diff = x0
@@ -57,7 +57,7 @@ def newtonConstStep(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_it
     return (x, y, num_of_iterations)
 
 
-# chyba działa
+# nie dziala odwracanie hesjanu bo = 0
 def newtonAdaptStep(x0, func, step, alpha, n, betha, gamma, error_margin=0.0001, max_num_of_iter=1000):
     x = x0
     diff = x0
@@ -74,7 +74,7 @@ def newtonAdaptStep(x0, func, step, alpha, n, betha, gamma, error_margin=0.0001,
         # d = hess(x)**(-1)*grad(x)
         d = np.dot(np.linalg.inv(ndt.Hessian(f)(prev_x, alpha, n)), ndt.Gradient(func)(prev_x, alpha, n))
 
-        x = [prev_x[i] - step*d[i] for i in range(len(x))]
+        x = [prev_x[i] - t*step*d[i] for i in range(len(x))]
         diff = [abs(prev_x[i]-x[i]) for i in range(len(x))]
 
         num_of_iterations += 1
@@ -88,9 +88,11 @@ def localMinimum(algorithm, x0, func, step, alpha, n, betha=1, gamma=1/2, error_
     diff = x0
     # for making sure that gradient works properly
     num_of_iter = 0
-    y = []
+    next_x = [x] # saves all x positions of algorith
+    next_y = [f(x, alpha, n)] # saves all values for next_x
+    t = 1
 
-    if algorithm == newtonAdaptStep:
+    if algorithm == 'newtonAdaptStep':
         v = -np.dot(np.linalg.inv(ndt.Hessian(f)(x, alpha, n)), ndt.Gradient(func)(x, alpha, n))
         while (func(x+t*v, alpha, n)>func(x, alpha, n)+gamma*t*np.transpose(ndt.Gradient(func)(x, alpha, n))*v).any(): # tu any czy all???
             t = betha*t
@@ -98,18 +100,18 @@ def localMinimum(algorithm, x0, func, step, alpha, n, betha=1, gamma=1/2, error_
     while any(i>error_margin for i in diff) and num_of_iter<max_num_of_iter:
         prev_x = x
 
-        if algorithm==gradientDescend :
+        if algorithm=='gradientDescend' :
             d = ndt.Gradient(func)(prev_x, alpha, n)
         else:
             d = np.dot(np.linalg.inv(ndt.Hessian(f)(prev_x, alpha, n)), ndt.Gradient(func)(prev_x, alpha, n))
 
-        x = [prev_x[i] - step*d[i] for i in range(len(x))]
+        x = [prev_x[i] - t*step*d[i] for i in range(len(x))]
         diff = [abs(prev_x[i]-x[i]) for i in range(len(x))]
 
         num_of_iter += 1
-        y.append(func(x, alpha, n))
-    return (x, y, num_of_iter)
-
+        next_y.append(func(x, alpha, n))
+        next_x.append(x)
+    return (x, next_x, next_y, num_of_iter)
 
 
 def f(x, alpha, n):
@@ -118,12 +120,36 @@ def f(x, alpha, n):
         result += alpha**(i/(n-1))*x[i]**2
     return result
 
+# TODO: fix hessian in Newton
+# TODO: measure times
+# TODO: measure influence of step
+#
 def main():
     alpha = [1, 10, 100]
     n = [10, 20]
-    x0 = [15]*10
-    min, y, num_of_iter = newtonConstStep(x0, f, 0.1, alpha[0], n[0])
-    plt.plot(range(num_of_iter), y)
+    step = np.linspace(0, 1, 11)
+    x0 = [10]*10
+    #for a in alpha:
+    #    for b in n:
+    fig = plt.figure()
+    for i in range(1, len(step)-1):
+        min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, step[i], alpha[0], n[0])
+        ax = fig.add_subplot(3, 3, i)
+        x = np.arange(0, 10)
+        y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
+        plt.plot(x, y)
+        plt.plot(min[1], f(min, alpha[0], n[0]), 'g*')
+        plt.plot(next_x, next_y, 'r')
+        ax.title.set_text(f"step={step[i]}")
+        ax.title.set_fontsize(5)
+
+    #plt.plot(range(num_of_iter), y)
+
+    # x = np.arange(-10, 10)
+    # y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
+    # plt.plot(x, y)
+    # plt.plot(min[1], f(min, 1, 10), 'g*')
+
     plt.show()
 
 
