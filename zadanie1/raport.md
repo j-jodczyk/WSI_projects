@@ -8,7 +8,7 @@ Zbadaj wpływ wartości parametru kroku na zbieżność obu metod. Ponadto poró
 ## Metoda gradientu prostego
 1. Wpływ kroku na zbieżność\
 Testowane wartości kroku:
-```
+```python
 step = np.linspace(0, 1, 8)
 ```
 ![zbierznosc_1](Figure_1.png)\
@@ -23,6 +23,28 @@ Widzimy, że im mniejszy krok, tym lepsze wyniki, więc zbadajmy działanie dla 
 Najlepsza zbieżność dla kroku z przedziału [0.05, 0.07]\
 ![zbierznosc](Figure_6.png)
 ![zbierznosc](Figure_7.png)
+
+
+## Porównanie czasów działania
+```python
+t_start = time.process_time()
+localMinimum('gradientDescend', x0, f, 0.3, alpha[0], n[0])
+t_stop = time.process_time()
+print(f"gradient process time:{t_stop-t_start}")
+
+t_start = time.process_time()
+localMinimum('newtonConstStep', x0, f, 0.3, alpha[0], n[0])
+t_stop = time.process_time()
+print(f"newton with constant step process time:{t_stop-t_start}")
+
+t_start = time.process_time()
+localMinimum('newtonAdaptStep', x0, f, 0.3, alpha[0], n[0])
+t_stop = time.process_time()
+print(f"newton with backtracking process time:{t_stop-t_start}")
+```
+Gradient : 0.11456366700000009 s\
+Newton bez nawrotów:\
+Newton z nawrotami:\
 
 
 

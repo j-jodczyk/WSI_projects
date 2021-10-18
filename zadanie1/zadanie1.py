@@ -7,6 +7,7 @@
 
 import numpy as np
 import numdifftools as ndt
+import time
 from matplotlib import pyplot as plt
 
 
@@ -34,7 +35,6 @@ def gradientDescend(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_it
     return (x, y, num_of_iterations)
 
 
-# odwrócony hesian = 0, co w takim razie?
 def newtonConstStep(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_iter=1000):
     x = x0
     diff = x0
@@ -57,7 +57,6 @@ def newtonConstStep(x0, func, step, alpha, n, error_margin=0.0001, max_num_of_it
     return (x, y, num_of_iterations)
 
 
-# nie dziala odwracanie hesjanu bo = 0
 def newtonAdaptStep(x0, func, step, alpha, n, betha, gamma, error_margin=0.0001, max_num_of_iter=1000):
     x = x0
     diff = x0
@@ -120,30 +119,45 @@ def f(x, alpha, n):
         result += alpha**(i/(n-1))*x[i]**2
     return result
 
-# TODO: fix hessian in Newton
-# TODO: measure times
+
 # TODO: measure influence of step
 #
 def main():
     alpha = [1, 10, 100]
     n = [10, 20]
     step = np.linspace(0, 1, 8)
-    x0 = [10]*20
-    #for a in alpha:
-    #    for b in n:
-    fig = plt.figure()
-    fig.suptitle("alpha=1, n=20")
-    for i in range(1, len(step)-1):
-        min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, step[i], alpha[0], n[1])
-        ax = fig.add_subplot(2, 3, i)
-        x = np.arange(0, 10)
-        y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
-        plt.plot(x, y)
-        plt.plot(min[0], f(min, alpha[0], n[1]), 'g*')
-        plt.plot(next_x, next_y, 'r')
-        ax.title.set_text(f"step={step[i]}")
-        ax.title.set_fontsize(7)
-        ax.tick_params(labelsize=7)
+    x0 = [10]*10
+
+    # time
+    t_start = time.process_time()
+    localMinimum('gradientDescend', x0, f, 0.3, alpha[0], n[0])
+    t_stop = time.process_time()
+    print(f"gradient process time:{t_stop-t_start}")
+
+    t_start = time.process_time()
+    localMinimum('newtonConstStep', x0, f, 0.3, alpha[0], n[0])
+    t_stop = time.process_time()
+    print(f"newton with constant step process time:{t_stop-t_start}")
+
+    t_start = time.process_time()
+    localMinimum('newtonAdaptStep', x0, f, 0.3, alpha[0], n[0])
+    t_stop = time.process_time()
+    print(f"newton with backtracking process time:{t_stop-t_start}")
+
+    # plotting
+    # fig = plt.figure()
+    # fig.suptitle("alpha=1, n=20")
+    # for i in range(1, len(step)-1):
+    #     min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, step[i], alpha[0], n[1])
+    #     ax = fig.add_subplot(2, 3, i)
+    #     x = np.arange(0, 10)
+    #     y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
+    #     plt.plot(x, y)
+    #     plt.plot(min[0], f(min, alpha[0], n[1]), 'g*')
+    #     plt.plot(next_x, next_y, 'r')
+    #     ax.title.set_text(f"step={step[i]}")
+    #     ax.title.set_fontsize(7)
+    #     ax.tick_params(labelsize=7)
 
     #plt.plot(range(num_of_iter), y)
 
