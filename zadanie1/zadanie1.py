@@ -9,6 +9,9 @@ import numpy as np
 import numdifftools as ndt
 import time
 from matplotlib import pyplot as plt
+from random import randint
+
+from scipy.special.orthogonal import jacobi
 
 
 # usunąć powtarzanie się kodu!! :(((
@@ -88,8 +91,10 @@ def localMinimum(algorithm, x0, func, step, alpha, n, betha=1, gamma=1/2, error_
     # for making sure that gradient works properly
     num_of_iter = 0
     next_x = [x] # saves all x positions of algorith
-    next_y = [f(x, alpha, n)] # saves all values for next_x
+    next_y = [func(x, alpha, n)] # saves all values for next_x
     t = 1
+
+    prev_hess = np.linalg.inv(ndt.Hessian(f)(x, alpha, n))
 
     if algorithm == 'newtonAdaptStep':
         v = -np.dot(np.linalg.inv(ndt.Hessian(f)(x, alpha, n)), ndt.Gradient(func)(x, alpha, n))
@@ -102,7 +107,8 @@ def localMinimum(algorithm, x0, func, step, alpha, n, betha=1, gamma=1/2, error_
         if algorithm=='gradientDescend' :
             d = ndt.Gradient(func)(prev_x, alpha, n)
         else:
-            d = np.dot(np.linalg.inv(ndt.Hessian(f)(prev_x, alpha, n)), ndt.Gradient(func)(prev_x, alpha, n))
+            d = np.asarray(np.dot(prev_hess, ndt.Gradient(func)(prev_x, alpha, n))).reshape(-1)
+            #d = np.dot(np.linalg.inv(ndt.Hessian(f)(prev_x, alpha, n)), ndt.Gradient(func)(prev_x, alpha, n))
 
         x = [prev_x[i] - t*step*d[i] for i in range(len(x))]
         diff = [abs(prev_x[i]-x[i]) for i in range(len(x))]
@@ -110,6 +116,10 @@ def localMinimum(algorithm, x0, func, step, alpha, n, betha=1, gamma=1/2, error_
         num_of_iter += 1
         next_y.append(func(x, alpha, n))
         next_x.append(x)
+        if not algorithm=='gradientDescend' :
+            x_diff = np.transpose(np.matrix(np.subtract(prev_x, x)))
+            grad_diff = np.transpose(np.matrix(np.subtract(ndt.Gradient(func)(prev_x, alpha, n), ndt.Gradient(func)(x, alpha, n))))
+            prev_hess = inv_hess(prev_hess, x_diff, grad_diff)
     return (x, next_x, next_y, num_of_iter)
 
 
@@ -119,52 +129,86 @@ def f(x, alpha, n):
         result += alpha**(i/(n-1))*x[i]**2
     return result
 
+# DFP
+def inv_hess(prev_inv_hess, x_diff, grad_diff):
+    x_diff_t = np.transpose(x_diff)
 
-# TODO: measure influence of step
-#
+    grad_diff_t = np.transpose(grad_diff)
+    a = x_diff@x_diff_t
+    c=(x_diff_t*grad_diff)
+    b = prev_inv_hess*grad_diff*grad_diff_t*prev_inv_hess/(grad_diff_t*prev_inv_hess*grad_diff)
+    return prev_inv_hess+x_diff*x_diff_t/(x_diff_t*grad_diff)-prev_inv_hess*grad_diff*grad_diff_t*prev_inv_hess/(grad_diff_t*prev_inv_hess*grad_diff)
+
+
+def iterToStep(algorithm, fig, alpha, step, n, x0):
+    if n == 10:
+        k = 0
+    else:
+        k = 3
+    for j in range(len(alpha)):
+        iterations = []
+        for i in range(1, len(step-2)):
+            f_min, next_x, next_y, num_of_iter = localMinimum(algorithm, x0, f, step[i], alpha[j], n)
+            iterations.append(num_of_iter)
+        ax = fig.add_subplot(2, 3, j+k+1)
+        plt.plot(step[1:], iterations)
+        min_id = iterations.index(min(iterations))
+        plt.plot(step[min_id], iterations[min_id], 'y*')
+        ax.tick_params(labelsize=7)
+        ax.title.set_text(f"alpha={alpha[j]}, n={n}")
+        ax.title.set_size(7)
+        plt.xlabel("step", fontsize=6)
+        plt.ylabel("iterations", fontsize=6)
+
+
+
 def main():
+
     alpha = [1, 10, 100]
     n = [10, 20]
-    step = np.linspace(0, 1, 8)
-    x0 = [10]*10
+    step = np.linspace(0, 2, 30)
+    x0 = np.array([randint(1, 100) for i in range(10)])
+    x1 = np.array([randint(1, 100) for i in range(20)])
 
     # time
-    t_start = time.process_time()
-    localMinimum('gradientDescend', x0, f, 0.3, alpha[0], n[0])
-    t_stop = time.process_time()
-    print(f"gradient process time:{t_stop-t_start}")
+    # t_start = time.process_time()
+    # min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, 0.3, alpha[0], n[0])
+    # t_stop = time.process_time()
+    # print(f"gradient process time:{t_stop-t_start}")
+    # print(num_of_iter)
+    # print(min)
 
-    t_start = time.process_time()
-    localMinimum('newtonConstStep', x0, f, 0.3, alpha[0], n[0])
-    t_stop = time.process_time()
-    print(f"newton with constant step process time:{t_stop-t_start}")
+    # t_start = time.process_time()
+    # min, next_x, next_y, num_of_iter = localMinimum('newtonConstStep', x0, f, 0.9, alpha[0], n[0])
+    # t_stop = time.process_time()
+    # print(f"newton with constant step process time:{t_stop-t_start}")
+    # print(num_of_iter)
+    # print(min)
 
-    t_start = time.process_time()
-    localMinimum('newtonAdaptStep', x0, f, 0.3, alpha[0], n[0])
-    t_stop = time.process_time()
-    print(f"newton with backtracking process time:{t_stop-t_start}")
+    # t_start = time.process_time()
+    # min, next_x, next_y, num_of_iter = localMinimum('newtonAdaptStep', x0, f, 0.9, alpha[0], n[0])
+    # t_stop = time.process_time()
+    # print(f"newton with backtracking process time:{t_stop-t_start}")
+    # print(num_of_iter)
+    # print(min)
 
-    # plotting
-    # fig = plt.figure()
-    # fig.suptitle("alpha=1, n=20")
-    # for i in range(1, len(step)-1):
-    #     min, next_x, next_y, num_of_iter = localMinimum('gradientDescend', x0, f, step[i], alpha[0], n[1])
-    #     ax = fig.add_subplot(2, 3, i)
-    #     x = np.arange(0, 10)
-    #     y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
-    #     plt.plot(x, y)
-    #     plt.plot(min[0], f(min, alpha[0], n[1]), 'g*')
-    #     plt.plot(next_x, next_y, 'r')
-    #     ax.title.set_text(f"step={step[i]}")
-    #     ax.title.set_fontsize(7)
-    #     ax.tick_params(labelsize=7)
+    #plotting
+    fig = plt.figure()
+    iterToStep('gradientDescend', fig, alpha, step, 10, x0)
+    iterToStep('gradientDescend', fig, alpha, step, 20, x1)
 
-    #plt.plot(range(num_of_iter), y)
 
-    # x = np.arange(-10, 10)
-    # y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
-    # plt.plot(x, y)
-    # plt.plot(min[1], f(min, 1, 10), 'g*')
+        # x = np.arange(0, 10)
+        # y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
+        # plt.plot(x, y)
+        # plt.plot(min[0], f(min, alpha[0], n[0]), 'g*')
+        # plt.plot(next_x, next_y, 'r')
+        # plt.plot(range(num_of_iter+1), next_y)
+
+        # ax.title.set_text(f"step={step[i]}")
+        # ax.title.set_fontsize(7)
+        # ax.tick_params(labelsize=7)
+
 
     plt.show()
 
