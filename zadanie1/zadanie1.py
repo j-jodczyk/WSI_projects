@@ -85,7 +85,7 @@ def newtonAdaptStep(x0, func, step, alpha, n, betha, gamma, error_margin=0.0001,
     return (x, y, num_of_iterations)
 
 
-def localMinimum(algorithm, x0, func, step, alpha, n, betha=1, gamma=1/2, error_margin=0.0001, max_num_of_iter=1000):
+def localMinimum(algorithm, x0, func, step, alpha, n, betha=0.75, gamma=0.25, error_margin=0.0001, max_num_of_iter=1000):
     x = x0
     diff = x0
     # for making sure that gradient works properly
@@ -141,6 +141,7 @@ def inv_hess(prev_inv_hess, x_diff, grad_diff):
 
 
 def iterToStep(algorithm, fig, alpha, step, n, x0):
+    min_step = []
     if n == 10:
         k = 0
     else:
@@ -154,11 +155,13 @@ def iterToStep(algorithm, fig, alpha, step, n, x0):
         plt.plot(step[1:], iterations)
         min_id = iterations.index(min(iterations))
         plt.plot(step[min_id], iterations[min_id], 'y*')
+        min_step.append((step[min_id], iterations[min_id]))
         ax.tick_params(labelsize=7)
         ax.title.set_text(f"alpha={alpha[j]}, n={n}")
         ax.title.set_size(7)
         plt.xlabel("step", fontsize=6)
         plt.ylabel("iterations", fontsize=6)
+    return min_step
 
 
 
@@ -193,24 +196,23 @@ def main():
     # print(min)
 
     #plotting
-    fig = plt.figure()
-    iterToStep('gradientDescend', fig, alpha, step, 10, x0)
-    iterToStep('gradientDescend', fig, alpha, step, 20, x1)
+    # fig = plt.figure()
+    # min_step = iterToStep('gradientDescend', fig, alpha, step, 10, x0)
+    # min_step += iterToStep('gradientDescend', fig, alpha, step, 20, x1)
+    # print(min_step)
 
+    fig2 = plt.figure()
+    min_step = iterToStep('newtonConstStep', fig2, alpha, step, 10, x0)
+    min_step += iterToStep('newtonConstStep', fig2, alpha, step, 20, x1)
+    print(min_step)
 
-        # x = np.arange(0, 10)
-        # y = [f([x[j]]*10, 1, 10) for j in range(len(x))]
-        # plt.plot(x, y)
-        # plt.plot(min[0], f(min, alpha[0], n[0]), 'g*')
-        # plt.plot(next_x, next_y, 'r')
-        # plt.plot(range(num_of_iter+1), next_y)
-
-        # ax.title.set_text(f"step={step[i]}")
-        # ax.title.set_fontsize(7)
-        # ax.tick_params(labelsize=7)
-
+    # fig3 = plt.figure()
+    # min_step = iterToStep('newtonAdaptStep', fig3, alpha, step, 10, x0)
+    # min_step += iterToStep('newtonAdaptStep', fig3, alpha, step, 20, x1)
+    # print(min_step)
 
     plt.show()
+    #plt.savefig("iteration_to_step")
 
 
 if __name__=="__main__":
