@@ -12,108 +12,121 @@ from matplotlib import pyplot as plt
 MAX_X = 100
 
 
-# given function
 def f(x, alpha, n):
+    """
+    Objective function.
+    """
     result = 0
     for i in range(n):
         result += alpha**(i/(n-1))*x[i]**(2)
     return result
 
 
-gradient =  ndt.Gradient(f)
-hessian = ndt.Hessian(f)
+def message(iteration, max_iteration):
+    """
+    Returns message about why an algorithm finished working.
+    """
+    return "Algorithm reached iteration limit." if iteration == max_iteration else "Algorithm reached stop criterion."
 
-def gradientDescend(x0, func, step, alpha, n, error_margin=0.0000001, max_num_of_iter=1000):
+
+def gradientDescend(x0, func, step, error_margin=0.0000001, max_iteration=5000):
+    """
+    Implements gradient descend method of finding minimum od an objective function.
+
+    : param x0: array of begining co-ordinates
+    : param func: objective function
+    : param step: step of algorithm
+    : error_margin: defines the accuracy of stop criterion
+    : max_iteration: defines maximum number of iterations that the algorithm can perform
+    return: message why the algorithm finished working, co-ordinates of minimal value,
+            minimal value, number of iterations, value of function at every iteration (for plotting)
+    """
+    gradient =  ndt.Gradient(func)
+
     x = x0
     diff = x0
-    num_of_iterations = 0
-    y = [func(x0, alpha, n)]
+    iteration = 0
+    y = [func(x)]
 
     # stop criterion:
-    while np.linalg.norm(diff)>error_margin and num_of_iterations<max_num_of_iter:
+    while np.linalg.norm(diff)>error_margin and iteration<max_iteration:
         prev_x = x
-        d = gradient(prev_x, alpha, n)
+        d = gradient(prev_x)
         x = prev_x - step*d
 
         if any(abs(x))>100:
-            return (x, y, num_of_iterations)
+            return ("Divergent function", x, func(x), iteration)
 
         diff = prev_x-x
 
-        num_of_iterations += 1
-        y.append(func(x, alpha, n))
+        iteration += 1
 
-    return (x, y, num_of_iterations)
+        y.append(func(x))
+
+    return (message(iteration, max_iteration), x, func(x), iteration, y)
 
 
-def newton(x0, func, step, alpha, n, error_margin=0.0000001, max_num_of_iter=1000):
+def newton(x0, func, step, error_margin=0.0000001, max_iteration=5000):
+    """
+    Implements Newton's method of finding minimum od an objective function.
+
+    parameters the same as in gradientDescend
+    """
+    gradient =  ndt.Gradient(func)
+    hessian = ndt.Hessian(func)
+
     x = x0
     diff = x0
-    num_of_iterations = 0
-    y = [func(x0, alpha, n)]
-    # estymacja hessjanu:
-    #prev_inv_hess = np.linalg.inv(np.eye(n))
+    iteration = 0
+    y = [func(x)]
 
-    while np.linalg.norm(diff)>error_margin and num_of_iterations<max_num_of_iter:
+    while np.linalg.norm(diff)>error_margin and iteration<max_iteration:
         prev_x = x
         # d : hess(x)**(-1)*grad(x)
-        d = np.linalg.inv(hessian(prev_x, alpha, n))@gradient(prev_x, alpha, n)
-        # estymacja hesjanu:
-        #d = np.asarray(prev_inv_hess@gradient(x, alpha, n)).reshape(-1)
+        d = np.linalg.inv(hessian(prev_x))@gradient(prev_x)
 
         x = prev_x - step*d
         diff = prev_x-x
 
-        num_of_iterations += 1
-        y.append(func(x, alpha, n))
+        iteration += 1
+        y.append(func(x))
 
-        # dla estymacji hesjanu
-        # x_diff = np.transpose(np.matrix(np.subtract(prev_x, x)))
-        # grad_diff = np.transpose(np.matrix(np.subtract(gradient(prev_x, alpha, n), gradient(x, alpha, n))))
-        # prev_inv_hess = inv_hess(prev_inv_hess, x_diff, grad_diff)
-
-    return (x, y, num_of_iterations)
+    return (message(iteration, max_iteration), x, func(x), iteration, y)
 
 
-def newtonBtr(x0, func, step, alpha, n, betha=0.95, gamma=0.5, error_margin=0.0000001, max_num_of_iter=1000):
+def newtonBtr(x0, func, step, betha=0.9, gamma=0.5, error_margin=0.0000001, max_iteration=5000):
+    """
+    Implements Newton's method with backtracking of finding minimum od an objective function.
+
+    parameters the same as in gradientDescend and:
+    : param betha: how much will the step be adjusted
+    : param gamma: used in assertion of wheather step needs adjusting
+    """
+    gradient =  ndt.Gradient(func)
+    hessian = ndt.Hessian(func)
+
     x = x0
     diff = x0
     prev_x = x
-    num_of_iterations = 0
-    y = [func(x0, alpha, n)]
-    # estymacja hessjanu:
-    #prev_inv_hess = np.linalg.inv(np.eye(n))
-    t = 1
-    while np.linalg.norm(diff)>error_margin and num_of_iterations<max_num_of_iter:
+    iteration = 0
+    y = [func(x)]
+
+    while np.linalg.norm(diff)>error_margin and iteration<max_iteration:
         prev_x = x
 
         # d : hess(x)**(-1)*grad(x)
-        grad = gradient(prev_x, alpha, n)
-        d = np.linalg.inv(hessian(prev_x, alpha, n))@grad
-        # estymacja hesjanu:
-        #d = np.asarray(prev_inv_hess@gradient(x, alpha, n)).reshape(-1)
+        grad = gradient(prev_x)
+        d = np.linalg.inv(hessian(prev_x))@grad
 
-        x = prev_x - step*t*d
+        x = prev_x - step*d
         diff = prev_x-x
 
-        num_of_iterations += 1
-        y.append(func(x, alpha, n))
+        while func(x)>func(prev_x)+gamma*step*np.transpose(grad)@(-d):
+            step *= betha
+            x = prev_x - step*d
+            diff = prev_x-x
 
-        #TODO tutaj while czy if, i czy to przed czy po
-        if func(x, alpha, n)>func(prev_x, alpha, n)+gamma*t*np.transpose(grad)@(-d):
-            t = t*betha
+        iteration += 1
+        y.append(func(x))
 
-        # dla estymacji hesjanu
-        # x_diff = np.transpose(np.matrix(np.subtract(prev_x, x)))
-        # grad_diff = np.transpose(np.matrix(np.subtract(gradient(prev_x, alpha, n), gradient(x, alpha, n))))
-        # prev_inv_hess = inv_hess(prev_inv_hess, x_diff, grad_diff)
-
-    return (x, y, num_of_iterations)
-
-
-# DFP inverted hessian estimation
-def inv_hess(prev_inv_hess, x_diff, grad_diff):
-    x_diff_t = np.transpose(x_diff)
-    grad_diff_t = np.transpose(grad_diff)
-
-    return prev_inv_hess+x_diff@x_diff_t/(x_diff_t@grad_diff)-(prev_inv_hess@grad_diff@grad_diff_t@prev_inv_hess)/(grad_diff_t@prev_inv_hess@grad_diff)
+    return (message(iteration, max_iteration), x, func(x), iteration, y)

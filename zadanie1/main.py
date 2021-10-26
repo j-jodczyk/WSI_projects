@@ -4,14 +4,16 @@ import numdifftools as ndt
 from matplotlib import pyplot as plt
 from random import randint
 import pandas as pd
+from functools import partial
 from algorithms import gradientDescend, newton, newtonBtr, f
 from plotting import iterToMin
 
 
+
 def main():
 
-    alpha = [1, 10, 100]
-    n = [10, 20]
+    a = [1, 10, 100]
+    n0 = [10, 20]
     x0 = np.array([randint(-100, 100) for i in range(10)])
     x1 = np.array([randint(-100, 100) for i in range(20)])
 
@@ -27,71 +29,50 @@ def main():
         'backtracking' : []
     }
 
-    x2 = [-55, -64,  48, -48,  42, -68,  57, -19,  -5, -26]
-    # 2 eksperymenty czasowe
-    #TODO cos tu nie działa, backtracking powinien być szybszyyyyy
+    print(x0)
+    print(x1)
+
     # for i in range(3):
     #     t_start = time.process_time()
-    #     min, next_x, num_of_iter = gradientDescend(x0, f, steps["gradient"][i], alpha[i], n[0])
+    #     message, x, f_min, iter, y = gradientDescend(x0, partial(f, alpha=a[i], n=n0[0]), steps["gradient"][i])
     #     t_stop = time.process_time()
-    #     times_of_processing["grandient"].append((t_stop-t_start, num_of_iter))
+    #     times_of_processing["grandient"].append((t_stop-t_start, iter))
 
     #     t_start = time.process_time()
-    #     min, next_x, num_of_iter = newton(x0, f, steps["newton"][i], alpha[i], n[0])
+    #     message, x, f_min, iter, y = newton(x0, partial(f, alpha=a[i], n=n0[0]), steps["newton"][i])
     #     t_stop = time.process_time()
-    #     times_of_processing["newton"].append((t_stop-t_start, num_of_iter))
+    #     times_of_processing["newton"].append((t_stop-t_start, iter))
 
     #     t_start = time.process_time()
-    #     min, next_x, num_of_iter = newtonBtr(x0, f, steps["backtracking"][i], alpha[i], n[0])
+    #     message, x, f_min, iter, y = newtonBtr(x0, partial(f, alpha=a[i], n=n0[0]), steps["backtracking"][i])
     #     t_stop = time.process_time()
-    #     times_of_processing["backtracking"].append((t_stop-t_start, num_of_iter))
-
-    t_start = time.process_time()
-    min, next_x, num_of_iter = newton(x0, f, 0.8, 10, n[0])
-    t_stop = time.process_time()
-    print(t_stop-t_start)
-    print(num_of_iter)
-    print(min)
-
-    t_start = time.process_time()
-    min, next_x, num_of_iter = newtonBtr(x0, f, 0.8, 10, n[0])
-    t_stop = time.process_time()
-    print(t_stop-t_start)
-    print(num_of_iter)
-    print(min)
+    #     times_of_processing["backtracking"].append((t_stop-t_start, iter))
 
 
-    #print(pd.DataFrame(times_of_processing))
+    # print(pd.DataFrame(times_of_processing))
 
-
-    #plotting
-    # fig = plt.figure()
-    # min_step = iterToStep(gradientDescend, fig, alpha, step, 10, x0)
-    # min_step += iterToStep(gradientDescend, fig, alpha, step, 20, x1)
-    # print(min_step)
-
-    # fig2 = plt.figure()
-    # min_step = iterToStep(newton, fig2, alpha, step, 10, x0)
-    # min_step += iterToStep(newton, fig2, alpha, step, 20, x1)
-    # print(min_step)
-
-    # fig3 = plt.figure()
-    # min_step = iterToStep(newtonBacktracking, fig3, alpha, step, 10, x0)
-    # min_step += iterToStep(newtonBacktracking, fig3, alpha, step, 20, x1)
-    # print(min_step)
-
+    x0 = [ 84, -27, 8, 74, 59, -81, 14, -85, 78, -65]
+    # x1 = [ 33, 17, 10, -69, 79, 78, -85, 7, 85, -47, -15, 74, -71, -41, 22, -85, 23, -76, 5, -42]
+    #plotting - testy muszą być na tej samej wartości :/ - seed ustawić
     # fig4, axs = plt.subplots(2,3, sharex=True, sharey=True)
-    # iterToMin(gradientDescend, fig4, axs, alpha, [[0.25, 0.15, 0.9], [0.05, 0.1, 0.09], [0.01, 0.009, 0.005]], 10, x0)
-    # iterToMin(gradientDescend, fig4, axs, alpha, [[0.25, 0.15, 0.9], [0.05, 0.1, 0.09], [0.01, 0.009, 0.005]], 20, x1)
+    # iterToMin(gradientDescend, fig4, axs, a, [[0.25, 0.15, 0.9], [0.05, 0.1, 0.09], [0.01, 0.009, 0.005]], 10, x0)
+    # iterToMin(gradientDescend, fig4, axs, a, [[0.25, 0.15, 0.9], [0.05, 0.1, 0.09], [0.01, 0.009, 0.005]], 20, x1)
 
     # fig5, axs = plt.subplots(2,3, sharex=True, sharey=True)
-    # iterToMin(newton, fig5, axs, alpha, [[1, 2, 0.8], [1, 2, 0.8], [1, 2, 0.8]], 10, x0)
-    # iterToMin(newton, fig5, axs, alpha, [[1, 2, 0.8], [1, 2, 0.8], [1, 2, 0.8]], 20, x1)
+    # iterToMin(newton, fig5, axs, a, [[1, 0.4, 0.8], [0.1, 1, 0.5], [0.1, 1, 0.5]], 10, x0)
+    func = partial(f, alpha=1, n=10)
+    message, x, f_min, iter, next_y = newton(x0, func, 1.1)
+    print(message)
+    print(iter)
+    message, x, f_min, iter, next_y = newtonBtr(x0, func, 1.1)
+    print(message)
+    print(iter)
+    # iterToMin(newton, fig5, axs, a, [[1, 0.4, 0.8], [0.1, 1, 0.5], [0.1, 1, 0.5]], 20, x1)
 
-    #fig6, axs = plt.subplots(2,3, sharex=True, sharey=True)
-    #iterToMin(newtonBtr, fig6, axs, alpha, [[1, 2, 0.8], [1, 2, 0.8], [1, 2, 0.8]], 10, x0)
-    #iterToMin(newtonBtr, fig6, axs, alpha, [[1, 2, 0.8], [1, 2, 0.8], [1, 2, 0.8]], 20, x1)
-    #plt.show()
+    # fig6, axs = plt.subplots(2,3, sharex=True, sharey=True)
+    # iterToMin(newtonBtr, fig6, axs, a, [[1, 0.4, 0.8], [0.1, 1, 0.5], [0.1, 1, 0.5]], 10, x0)
+    # iterToMin(newtonBtr, fig6, axs, a, [[1, 0.4, 0.8], [0.1, 1, 0.5], [0.1, 1, 0.5]], 20, x1)
+    plt.show()
 
     #plt.savefig("iteration_to_step")
 
