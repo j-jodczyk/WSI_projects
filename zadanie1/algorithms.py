@@ -48,16 +48,16 @@ def gradientDescend(x0, func, step, error_margin=0.0000001, max_iteration=5000):
     iteration = 0
     y = [func(x)]
 
-    # stop criterion:
+    # check stop criterion:
     while np.linalg.norm(diff)>error_margin and iteration<max_iteration:
         prev_x = x
-        d = gradient(prev_x)
-        x = prev_x - step*d
+        d = gradient(prev_x) # calculate direction
+        x = prev_x - step*d # calculate new value of x
 
-        if any(abs(x))>100:
+        if any(abs(x))>100: # if value of x is not in domain, return
             return ("Divergent function", x, func(x), iteration)
 
-        diff = prev_x-x
+        diff = prev_x-x # calculate difference
 
         iteration += 1
 
@@ -121,10 +121,11 @@ def newtonBtr(x0, func, step, betha=0.9, gamma=0.5, error_margin=0.0000001, max_
         x = prev_x - step*d
         diff = prev_x-x
 
+        # check wheather backtracking is needed
         while func(x)>func(prev_x)+gamma*step*np.transpose(grad)@(-d):
-            step *= betha
-            x = prev_x - step*d
-            diff = prev_x-x
+            step *= betha # adjust step
+            x = prev_x - step*d # adjust x
+            diff = prev_x-x # adjust difference
 
         iteration += 1
         y.append(func(x))
