@@ -22,7 +22,7 @@ def q(x):
     return((norm_pow_2 - D)**2)**(1/8)+(1/D)*(1/2*norm_pow_2**2+sum(x))+1/2
 
 
-def evolution_strategy(x0, func, l, s, b=1):
+def evolution_strategy(x0, func, l, s, b=1, max_iter=5000):
     """
     Implements (n/n,lambda) ES
 
@@ -40,7 +40,10 @@ def evolution_strategy(x0, func, l, s, b=1):
     iteration = 0
     surv_x = x0
     xi, z, x, offspr_s = []
-    while True:
+    func_budget = 0
+    iterations = 0
+    stop = func_budget>100*D or iterations>max_iter
+    while not stop:
         for i in range(l):
             xi[i] = tau*np.random.normal(0, 1)
             #TODO czy dobrze rozumiem ten rozklad normalny:
@@ -50,3 +53,5 @@ def evolution_strategy(x0, func, l, s, b=1):
         # somewhere here we choose n offsprings to keep
         s = sum([offspr_s[i]*1/n for i in range(n)])
         surv_x = sum([x[i]*1/n for i in range(n)])
+        iterations+=1
+        func_budget=0
