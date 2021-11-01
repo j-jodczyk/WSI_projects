@@ -1,8 +1,11 @@
 import numpy as np
 from math import e
-from random import randint
+from random import randint, seed
 
 #TODO czy mamy porówywać czasowo te algorytmy?
+
+
+#TODO jaka funkcja do generowania ziaren
 
 def f(x, alpha=1, n=10):
     #TODO czy tu już alpha = 1, n = 10?
@@ -40,11 +43,11 @@ def evolution_strategy_SA(x0, func, l, s, b=1, max_iter=5000, epsilon=0.000001):
     D = len(x0)
     n = int(l/2)
     tau = b*1/(D**(1/2))
-    iteration = 0
     surv_x = x0
     func_budget = 0
     iterations = 0
     diff = surv_x = x0
+    next_y = []
     while not (func_budget>100*D or iterations>max_iter or np.linalg.norm(diff)<epsilon):
         func_budget=0
         xi = [] #TODO czy w sumie potrzebujemy xi i z zapisywac jako liste?
@@ -68,7 +71,8 @@ def evolution_strategy_SA(x0, func, l, s, b=1, max_iter=5000, epsilon=0.000001):
         surv_x = sum([x[i]*1/n for i in range(n)])
         diff = abs(surv_x-prev_x)
         iterations+=1
-    return func(surv_x)
+        next_y.append(func(surv_x))
+    return func(surv_x), next_y, iterations
 
 
 def evolution_strategy_LMR(x0, func, l, s, b=1, max_iter=5000, epsilon=0.000001):
@@ -80,11 +84,11 @@ def evolution_strategy_LMR(x0, func, l, s, b=1, max_iter=5000, epsilon=0.000001)
     D = len(x0)
     n = int(l/2)
     tau = b*1/(D**(1/2))
-    iteration = 0
     surv_x = x0
     func_budget = 0
     iterations = 0
     diff = surv_x = x0
+    next_y = []
     while not (func_budget>100*D or iterations>max_iter or np.linalg.norm(diff)<epsilon):
         func_budget=0
         z = []
@@ -102,8 +106,9 @@ def evolution_strategy_LMR(x0, func, l, s, b=1, max_iter=5000, epsilon=0.000001)
         surv_x = sum([x[i]*1/n for i in range(n)])
         diff = abs(surv_x-prev_x)
         iterations+=1
-    return func(surv_x)
+        next_y.append(func(surv_x))
+    return func(surv_x), next_y, iterations
 
 
 x0 = np.array([randint(-100, 100) for i in range(10)])
-print(evolution_strategy_LMR(x0, q, 10, 8))
+#print(evolution_strategy_SA(x0, q, 10, 8))
