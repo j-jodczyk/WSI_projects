@@ -2,15 +2,15 @@ from matplotlib import pyplot as plt
 from random import randint
 import numpy as np
 import scipy.interpolate as interpol
-from algorithm import evolution_strategy_SA, evolution_strategy_LMR, f, q
+from algorithm import evolution_strategy, f, q
 
 
-def iterToSigma(algorithm, x0_arr, func, l, s, b=1):
+def iterToSigma(algorithm, x0_arr, func, l, s, flag, b=1):
     # czy sigma moze miec ujemne wartosci?
     # czy mamy sigme strzelic czy to jakos wyliczac
     next_y, iterations = [], []
     for i in range(len(x0_arr)):
-        y, iter = algorithm(x0_arr[i], func, l, s, b)[1:]
+        y, iter = algorithm(x0_arr[i], func, l, s, flag, b)[1:]
         next_y.append(y)
         iterations.append(iter)
 
@@ -29,7 +29,7 @@ a = np.array([1, 2, 3])
 a +=a
 print(a)
 
-next_y = iterToSigma(evolution_strategy_SA, x0_arr, f, 10, 100)
+next_y = iterToSigma(evolution_strategy, x0_arr, f, 10, 100, True)
 plt.plot(range(len(next_y)), next_y)
 plt.show()
 plt.savefig("result.pdf")
