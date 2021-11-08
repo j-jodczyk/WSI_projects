@@ -22,12 +22,12 @@ def q(x):
     other tested function.
     """
     D = len(x)
-    norm_pow_2 = np.linalg.norm(x)**2
-    return((norm_pow_2 - D)**2)**(1/8)+(1/D)*(1/2*norm_pow_2+sum(x))+1/2
+
+    return((np.linalg.norm(x)**2 - D)**2)**(1/8)+(1/D)*((1/2)*np.linalg.norm(x)**2+sum(x))+1/2
 
 
 def evolution_strategy(x0, func, lambda_, sigma, mut_type, ni=None,
-                       max_func_budget=None, b=1, epsilon=0.0000001, max_diff_cout=20): # nie flaga LMR, tylko mapa na LMR i SA
+                       max_func_budget=None, b=1, epsilon=0.0000001, max_diff_cout=20):
     """
     Implements (n/n,lambda) ES with self-adaptation.
 
@@ -44,11 +44,15 @@ def evolution_strategy(x0, func, lambda_, sigma, mut_type, ni=None,
 
     returns: ninumum x, func(minumum x), list of next values of func, number of iterations
     """
-    #TODO czy moze byc taki sposob okreslania mutacji + czy zabezpieczenie przed zla nazwa potrzebne
+    if mut_type != 'SA' and mut_type != 'LMR':
+        raise Exception("Unknown mutation name.")
+
+    best = x0
+
     D = len(x0)
     tau = b*1/(D**(1/2))
     ni = ni if ni else int(lambda_/2)
-    max_func_budget = max_func_budget if max_func_budget else 1000*D # moze byc taki? bo inaczej nie znajduje az tak szybko
+    max_func_budget = max_func_budget if max_func_budget else 1000*D
     func_budget = 0
     iterations = 0
     surv_x = x0
@@ -56,7 +60,7 @@ def evolution_strategy(x0, func, lambda_, sigma, mut_type, ni=None,
 
     diff_cout = 0
 
-    while func_budget<=max_func_budget and diff_cout<=max_diff_cout: #TODO czy moze byc taki warunek?
+    while func_budget<=max_func_budget and diff_cout<=max_diff_cout:
 
         prev_x = surv_x
 
@@ -87,10 +91,14 @@ def evolution_strategy(x0, func, lambda_, sigma, mut_type, ni=None,
         iterations+=1
         next_y.append(func(surv_x))
 
-        #TODO tu powinno byc sprawdzanie roznicy miedzy x czy func(x)?
-        if np.linalg.norm(abs(surv_x-prev_x))<epsilon:  # check whether next x are close to each other
+        if func(surv_x)<func(best):
+            best = surv_x
+
+        if abs(func(surv_x)-func(prev_x))<epsilon:  # check whether next x are close to each other
             diff_cout += 1
 
-    return surv_x, func(surv_x), next_y, iterations
+    return best, func(best), next_y, iterations
 
 
+#x0 = np.random.random(10)*100
+#print(evolution_strategy(x0, f, 10, 1, 'LMR'))
