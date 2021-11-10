@@ -17,7 +17,7 @@ def plot(seeds, fig, axs, algorithm, x0, func, lambda_, sigma, ni=None,
                 f_min_arr, next_y, iterations = [], [], []
                 for i in range(5):
                     np.random.seed(seeds[i])
-                    f_min, y, iter = algorithm(x0, func, lambda_[k], sigma[j], m, ni, max_func_budget, b, epsilon, max_diff_cout)[1:]
+                    f_min, y, iter = algorithm(x0, func, lambda_[k], sigma[j], m, ni, max_func_budget, b, epsilon, max_diff_cout)[2:]
 
                     next_y.append(y)
                     iterations.append(iter)

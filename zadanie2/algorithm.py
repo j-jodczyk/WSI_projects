@@ -97,7 +97,12 @@ def evolution_strategy(x0, func, lambda_, sigma, mut_type, ni=None,
         if abs(func(surv_x)-func(prev_x))<epsilon:  # check whether next x are close to each other
             diff_cout += 1
 
-    return best, func(best), next_y, iterations
+    if func_budget==max_func_budget:
+        message = "Algorithm reached maximum function budget."
+    else:
+        message = "Algorithm found global miniumum."
+
+    return message, best, func(best), next_y, iterations
 
 
 #x0 = np.random.random(10)*100
