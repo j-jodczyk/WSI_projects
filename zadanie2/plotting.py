@@ -1,5 +1,4 @@
 from matplotlib import pyplot as plt
-from random import randint, seed
 import numpy as np
 import scipy.interpolate as interpol
 from algorithm import evolution_strategy, f, q
@@ -7,7 +6,9 @@ from algorithm import evolution_strategy, f, q
 
 def plot(seeds, fig, axs, algorithm, x0, func, lambda_, sigma, ni=None,
                        max_func_budget=None, b=1, epsilon=0.0000001, max_diff_cout=20): # s=0.1, 1, 10, 0.01
-
+    """
+    Function for creating plots for evolution_strategy function.
+    """
     mut_type = ['SA', 'LMR']
     fig.text(0.5, 0.04, 'iteration', ha='center')
     fig.text(0.04, 0.5, 'f(x)', va='center', rotation='vertical')
