@@ -12,10 +12,6 @@ import copy
 # max - o
 # min - x
 
-
-# TODO czy zakladamy, ze gra moze byc nierozstrzygnieta
-
-
 class IncorrectPlayerNameError(Exception):
     def __init__(self, name):
         super().__init__('Name of Player must be "x" or "o"')
@@ -155,7 +151,6 @@ class Game:
             for u in state_successors:
                 u.set_value(self.Minmax(u, depth-1, not isMin).value)
             return max(state_successors, key=lambda t:t.value)
-
 
 
 def gameplay(game, depth):
