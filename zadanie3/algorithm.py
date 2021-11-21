@@ -33,24 +33,42 @@ class State:
     def switch_player(self):
         self.curr_playing = 'x' if self.curr_playing =='o' else 'o'
 
-    def is_terminal(self):
-
+    def who_wins(self):
         # check rows:
         for i in range(3):
-            if self.board[i][0] == self.board[i][1] == self.board[i][2] and self.board[i][0] in ['x', 'o']:
-                return True
+            if self.board[i][0] == self.board[i][1] == self.board[i][2]:
+                if self.board[i][0] == 'x':
+                    return 'x'
+                elif self.board[i][0] == 'o':
+                    return 'o'
 
         # check column:
         for j in range(3):
-            if self.board[0][j] == self.board[1][j] == self.board[2][j] and self.board[0][j] in ['x', 'o']:
-                return True
+            if self.board[0][j] == self.board[1][j] == self.board[2][j]:
+                if self.board[0][j] == 'x':
+                    return 'x'
+                elif self.board[0][j] == 'o':
+                    return 'o'
 
         # check diagonal:
-        if self.board[0][0] == self.board[1][1] == self.board[2][2] and self.board[0][0] in ['x', 'o']:
-            return True
+        if self.board[0][0] == self.board[1][1] == self.board[2][2]:
+            if self.board[0][0] == 'x':
+                return 'x'
+            elif self.board[0][0] == 'o':
+                return 'o'
 
         # check antidiagonal:
-        if self.board[2][0] == self.board[1][1] == self.board[0][2] and self.board[2][0] in ['x', 'o']:
+        if self.board[2][0] == self.board[1][1] == self.board[0][2]:
+            if self.board[2][0] == 'x':
+                return 'x'
+            elif self.board[2][0] == 'o':
+                return 'o'
+
+        return None
+
+    def is_terminal(self):
+
+        if self.who_wins():
             return True
 
         # check if no moves can be made:
@@ -100,14 +118,6 @@ class State:
         return result
 
 
-
-class Move:
-    def __init__(self, game, player, state):
-        self.game = game
-        self.player = player
-        self.state = state
-
-
 class Player:
     def __init__(self, name):
         if name != 'x' and name != 'o':
@@ -135,17 +145,21 @@ class Game:
         self.curr_player.opponent = tmp_player
 
     def Minmax(self, state, depth, isMin):
-        if isMin:
+        if isMin: #'x'
             if state.is_terminal() or depth==0:
                 state.set_value(state.heuristic())
+                # if state.who_wins() == 'x':
+                #     state.set_value(state.value-20)
                 return state
             state_successors = state.successors('x')
             for u in state_successors:
                 u.set_value(self.Minmax(u, depth-1, not isMin).value)
             return min(state_successors, key=lambda t:t.value)
-        else:
+        else: #'o'
             if state.is_terminal() or depth==0:
                 state.set_value(state.heuristic())
+                # if state.who_wins()=='o':
+                #     state.set_value(state.value+20)
                 return state
             state_successors = state.successors('o')
             for u in state_successors:
@@ -155,10 +169,13 @@ class Game:
 
 def gameplay(game, depth):
     while not game.curr_state.is_terminal():
+        print("current state of the game")
         print(game.curr_state)
         isMin = True if game.curr_player.name == 'x' else False
         game.set_curr_state(game.Minmax(game.curr_state, depth, isMin))
         game.switch_player()
+    print(f'winner: {game.curr_state.who_wins()}')
+    print("current state of the game")
     print(game.curr_state)
 
 
