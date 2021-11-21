@@ -75,17 +75,17 @@ class State:
                     state_points += points[i][j]
         return state_points
 
-    def successors(self):
+    def successors(self, player_name):
         empty_spots = []
         for i in range(3):
             for j in range(3):
                 if self.board[i][j] == '':
                     empty_spots.append((i, j))
-        return[State(self.newboard(coord)) for coord in empty_spots]
+        return[State(self.newboard(coord, player_name)) for coord in empty_spots]
 
-    def newboard(self, coord):
+    def newboard(self, coord, player_name):
         n_board = copy.deepcopy(self.board)
-        n_board[coord[0]][coord[1]] = self.curr_playing
+        n_board[coord[0]][coord[1]] = player_name
         return n_board
 
     def create_line(self, array):
@@ -106,7 +106,10 @@ class State:
 
 
 class Move:
-    pass
+    def __init__(self, game, player, state):
+        self.game = game
+        self.player = player
+        self.state = state
 
 
 class Player:
@@ -135,29 +138,36 @@ class Game:
         self.curr_player = self.curr_player.opponent
         self.curr_player.opponent = tmp_player
 
-    def Minmax(self, state, depth):
-        if state.is_terminal() or depth==0:
-            state.set_value(state.heuristic())
-            return state
-        state.switch_player() #TODO nie dziala zmiana gracza
-        state_successors = state.successors()
-        for u in state_successors:
-            u.set_value(self.Minmax(u, depth-1).value)
-        if self.curr_player.name == 'o':
-            return max(state_successors, key=lambda t:t.value)
-        else:
+    def Minmax(self, state, depth, isMin):
+        if isMin:
+            if state.is_terminal() or depth==0:
+                state.set_value(state.heuristic())
+                return state
+            state_successors = state.successors('x')
+            for u in state_successors:
+                u.set_value(self.Minmax(u, depth-1, not isMin).value)
             return min(state_successors, key=lambda t:t.value)
+        else:
+            if state.is_terminal() or depth==0:
+                state.set_value(state.heuristic())
+                return state
+            state_successors = state.successors('o')
+            for u in state_successors:
+                u.set_value(self.Minmax(u, depth-1, not isMin).value)
+            return max(state_successors, key=lambda t:t.value)
+
 
 
 def gameplay(game, depth):
     while not game.curr_state.is_terminal():
         print(game.curr_state)
-        game.set_curr_state(game.Minmax(game.curr_state, depth))
-        game.switch_player(game.curr_player)
+        isMin = True if game.curr_player.name == 'x' else False
+        game.set_curr_state(game.Minmax(game.curr_state, depth, isMin))
+        game.switch_player()
     print(game.curr_state)
 
 
 
 x = Player('o')
 g = Game(x)
-gameplay(g, 3)
+gameplay(g, 6)
