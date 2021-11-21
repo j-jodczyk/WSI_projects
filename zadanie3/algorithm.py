@@ -25,6 +25,17 @@ class IncorrectPlayerNameError(Exception):
 class State:
     def __init__(self, board=np.empty((3, 3), str)):
         self.board = board
+        self.curr_playing = None
+        self.value = None
+
+    def set_value(self, new_value):
+        self.value = new_value
+
+    def set_curr_playing(self, player):
+        self.curr_playing = player.name
+
+    def switch_player(self):
+        self.curr_playing = 'x' if self.curr_playing =='o' else 'o'
 
     def is_terminal(self):
 
@@ -64,18 +75,33 @@ class State:
                     state_points += points[i][j]
         return state_points
 
-    def successors(self, player):
+    def successors(self):
         empty_spots = []
         for i in range(3):
             for j in range(3):
                 if self.board[i][j] == '':
                     empty_spots.append((i, j))
-        return[State(self.newboard(coord, player)) for coord in empty_spots]
+        return[State(self.newboard(coord)) for coord in empty_spots]
 
-    def newboard(self, coord, player):
+    def newboard(self, coord):
         n_board = copy.deepcopy(self.board)
-        n_board[coord[0]][coord[1]] = player.name
+        n_board[coord[0]][coord[1]] = self.curr_playing
         return n_board
+
+    def create_line(self, array):
+        for i in range(len(array)):
+            if array[i] == '':
+                array[i] = ' '
+        return f' {array[0]} | {array[1]} | {array[2]} \n'
+
+    def __str__(self):
+        c_board = copy.deepcopy(self.board)
+        result= self.create_line(c_board[0])+\
+                '---|---|---\n'+\
+                self.create_line(c_board[1])+\
+                '---|---|---\n'+\
+                self.create_line(c_board[2])
+        return result
 
 
 
@@ -92,59 +118,46 @@ class Player:
 
     def set_opponent(self):
         self.opponent = Player('x') if self.name == 'o' else Player('o')
-    # polityka grania
 
 
 class Game:
     def __init__(self, starting_player):
-        self.begin_state = State()
         self.curr_state = State()
-        self.starting_player = starting_player
-        self.starting_player.set_opponent()
+        self.curr_state.set_curr_playing(starting_player)
         self.curr_player = starting_player
+        self.curr_player.set_opponent()
 
     def set_curr_state(self, new_state):
         self.curr_state = new_state
 
     def switch_player(self):
-        if self.curr_player.name == "x":
-            tmp_player = self.curr_player
-            self.curr_player = self.curr_player.opponent
-            self.curr_player.opponent = tmp_player
-
-    def gameplay(self, depth):
-        while not self.curr_state.is_terminal():
-            self.set_curr_state(self.Minmax(self.curr_state, depth)[0])
-            self.switch_player
-            print(Game)
+        tmp_player = self.curr_player
+        self.curr_player = self.curr_player.opponent
+        self.curr_player.opponent = tmp_player
 
     def Minmax(self, state, depth):
-        payoff = {}
         if state.is_terminal() or depth==0:
-            return state.heuristic()
-        state_successors = state.successors(self.curr_player)
+            state.set_value(state.heuristic())
+            return state
+        state.switch_player() #TODO nie dziala zmiana gracza
+        state_successors = state.successors()
         for u in state_successors:
-            payoff[u] = self.Minmax(u, depth-1)
-        if self.curr_player.name == 'x':
-            return max(payoff, key=payoff.get)
+            u.set_value(self.Minmax(u, depth-1).value)
+        if self.curr_player.name == 'o':
+            return max(state_successors, key=lambda t:t.value)
         else:
-            return min(payoff, key=payoff.get)
-
-    def create_line(array):
-        for i in range(len(array)):
-            if array[i] == None:
-                array[i] = ' '
-        return f' {array[0]} | {array[1]} | {array[2]} '
-
-    def __str__(self):
-        c_board = copy.deepcopy(self.curr_state.board)
-        return self.create_line(c_board[0])+\
-               '---|---|---'+\
-               self.create_line(c_board[1])+\
-               '---|---|---'+\
-               self.create_line(c_board[2])
+            return min(state_successors, key=lambda t:t.value)
 
 
-x = Player('x')
+def gameplay(game, depth):
+    while not game.curr_state.is_terminal():
+        print(game.curr_state)
+        game.set_curr_state(game.Minmax(game.curr_state, depth))
+        game.switch_player(game.curr_player)
+    print(game.curr_state)
+
+
+
+x = Player('o')
 g = Game(x)
-g.gameplay(3)
+gameplay(g, 3)
