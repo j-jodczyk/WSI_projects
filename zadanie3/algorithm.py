@@ -125,16 +125,16 @@ class Player:
         self.name = name
         self.opponent = None
 
-    def set_opponent(self):
-        self.opponent = Player('x') if self.name == 'o' else Player('o')
+    def set_opponent(self, player):
+        self.opponent = player
 
 
 class Game:
-    def __init__(self, starting_player):
+    def __init__(self, starting_players):
         self.curr_state = State()
-        self.curr_state.set_curr_playing(starting_player)
-        self.curr_player = starting_player
-        self.curr_player.set_opponent()
+        self.curr_state.set_curr_playing(starting_players[0])
+        self.curr_player = starting_players[0]
+        self.curr_player.set_opponent(starting_players[1])
 
     def set_curr_state(self, new_state):
         self.curr_state = new_state
@@ -148,18 +148,16 @@ class Game:
         if isMin: #'x'
             if state.is_terminal() or depth==0:
                 state.set_value(state.heuristic())
-                # if state.who_wins() == 'x':
-                #     state.set_value(state.value-20)
                 return state
             state_successors = state.successors('x')
             for u in state_successors:
                 u.set_value(self.Minmax(u, depth-1, not isMin).value)
+                print(u.value)
+            print(min(state_successors, key=lambda t:t.value).value)
             return min(state_successors, key=lambda t:t.value)
         else: #'o'
             if state.is_terminal() or depth==0:
                 state.set_value(state.heuristic())
-                # if state.who_wins()=='o':
-                #     state.set_value(state.value+20)
                 return state
             state_successors = state.successors('o')
             for u in state_successors:
@@ -180,6 +178,7 @@ def gameplay(game, depth):
 
 
 
-x = Player('o')
-g = Game(x)
-gameplay(g, 6)
+x = Player('x')
+o = Player('o')
+g = Game([x, o])
+gameplay(g, 5)
