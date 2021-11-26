@@ -9,8 +9,11 @@
 import numpy as np
 import copy
 
+from numpy.core.fromnumeric import transpose
+
 # max - o
 # min - x
+
 
 class IncorrectPlayerNameError(Exception):
     def __init__(self, name):
@@ -33,36 +36,31 @@ class State:
     def switch_player(self):
         self.curr_playing = 'x' if self.curr_playing =='o' else 'o'
 
-    def who_wins(self):
+    def check_row(self, row):
+        if len(set(row)) == 1:
+            return row[0]
+
+    def who_wins(self): # do zmiany
+        winner = ''
         # check rows:
-        for i in range(3):
-            if self.board[i][0] == self.board[i][1] == self.board[i][2]:
-                if self.board[i][0] == 'x':
-                    return 'x'
-                elif self.board[i][0] == 'o':
-                    return 'o'
+        for row in self.board:
+            winner = self.check_row(row)
 
         # check column:
-        for j in range(3):
-            if self.board[0][j] == self.board[1][j] == self.board[2][j]:
-                if self.board[0][j] == 'x':
-                    return 'x'
-                elif self.board[0][j] == 'o':
-                    return 'o'
+        transposed = np.transpose(self.board)
+        for column in transposed:
+            winner = self.check_row(column)
 
         # check diagonal:
-        if self.board[0][0] == self.board[1][1] == self.board[2][2]:
-            if self.board[0][0] == 'x':
-                return 'x'
-            elif self.board[0][0] == 'o':
-                return 'o'
+        if len(set(self.board[n][n] for n in range(len(self.board))))==1:
+            winner = self.board[0][0]
 
         # check antidiagonal:
-        if self.board[2][0] == self.board[1][1] == self.board[0][2]:
-            if self.board[2][0] == 'x':
-                return 'x'
-            elif self.board[2][0] == 'o':
-                return 'o'
+        if len(set(self.board[n][len(self.board)-n-1] for n in range(len(self.board))))==1:
+            winner = self.board[0][len(self.board)-1]
+
+        if winner != '':
+            return winner
 
         return None
 
@@ -128,7 +126,26 @@ class Player:
     def set_opponent(self, player):
         self.opponent = player
 
+    def Minmax(self, state, depth, isMin):
+        if state.is_terminal() or depth==0:
+                state.set_value(state.heuristic())
+                return state
+        if isMin: #'x'
+            state_successors = state.successors('x')
+            for u in state_successors:
+                u.set_value(self.Minmax(u, depth-1, not isMin).value)
+            return min(state_successors, key=lambda t:t.value)
+        else: #'o'
+            state_successors = state.successors('o')
+            for u in state_successors:
+                u.set_value(self.Minmax(u, depth-1, not isMin).value)
+            return max(state_successors, key=lambda t:t.value)
 
+
+# przeniesc logike gry do player
+# gra przekazuje playerowi obecny stan
+# player ocenia stan zwraca grze nowy stan
+# gra waliduje stan, zmienia playera
 class Game:
     def __init__(self, starting_players):
         self.curr_state = State()
@@ -144,41 +161,22 @@ class Game:
         self.curr_player = self.curr_player.opponent
         self.curr_player.opponent = tmp_player
 
-    def Minmax(self, state, depth, isMin):
-        if isMin: #'x'
-            if state.is_terminal() or depth==0:
-                state.set_value(state.heuristic())
-                return state
-            state_successors = state.successors('x')
-            for u in state_successors:
-                u.set_value(self.Minmax(u, depth-1, not isMin).value)
-                print(u.value)
-            print(min(state_successors, key=lambda t:t.value).value)
-            return min(state_successors, key=lambda t:t.value)
-        else: #'o'
-            if state.is_terminal() or depth==0:
-                state.set_value(state.heuristic())
-                return state
-            state_successors = state.successors('o')
-            for u in state_successors:
-                u.set_value(self.Minmax(u, depth-1, not isMin).value)
-            return max(state_successors, key=lambda t:t.value)
-
-
-def gameplay(game, depth):
-    while not game.curr_state.is_terminal():
+    def gameplay(self, depth):
+        while not self.curr_state.is_terminal():
+            print("current state of the game")
+            print(self.curr_state)
+            isMin = True if self.curr_player.name == 'x' else False
+            playersMove = self.curr_player.Minmax(self.curr_state, depth, isMin)
+            self.set_curr_state(playersMove)
+            self.switch_player()
+        print(f'winner: {self.curr_state.who_wins()}')
         print("current state of the game")
-        print(game.curr_state)
-        isMin = True if game.curr_player.name == 'x' else False
-        game.set_curr_state(game.Minmax(game.curr_state, depth, isMin))
-        game.switch_player()
-    print(f'winner: {game.curr_state.who_wins()}')
-    print("current state of the game")
-    print(game.curr_state)
+        print(self.curr_state)
+
 
 
 
 x = Player('x')
 o = Player('o')
 g = Game([x, o])
-gameplay(g, 5)
+g.gameplay(7)
