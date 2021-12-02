@@ -77,6 +77,14 @@ class State:
 
 
     def heuristic(self):
+        if self.is_terminal():
+            winner = self.who_wins()
+            if winner=='x':
+                return -1
+            elif winner=='o':
+                return 1
+            else:
+                return 0
         points = np.array([[3, 2, 3], [2, 4, 2], [3, 2, 3]])
         state_points = 0
         for i in range(3):
@@ -128,8 +136,8 @@ class Player:
 
     def Minmax(self, state, depth, isMin):
         if state.is_terminal() or depth==0:
-                state.set_value(state.heuristic())
-                return state
+            state.set_value(state.heuristic())
+            return state
         if isMin: #'x'
             state_successors = state.successors('x')
             for u in state_successors:
@@ -178,5 +186,5 @@ class Game:
 
 x = Player('x')
 o = Player('o')
-g = Game([x, o])
-g.gameplay(7)
+g = Game([o, x])
+g.gameplay(6)
