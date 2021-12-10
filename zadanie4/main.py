@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score
 import pandas as pd
 import numpy as np
 from functools import partial
-from sklearn.utils import shuffle
+import cvxpy as cp
 
 
 def discretization(dataframe):
@@ -22,13 +22,22 @@ def discretization(dataframe):
 def gausian_kernel(u, v, gamma):
         return np.exp(gamma * (-np.linalg.norm(u-v)**2))
 
+
 class SVM:
-    def __init__(self, X, Y,error_m, kernel_function):
+    def __init__(self, X, Y, C, kernel_function):
         self.X = X
         self.Y = Y
-        self.error_m = error_m
+        self.C = C
         self.kernel_function = kernel_function
         self.alpha = np.zeros(len(X))
+        self.kernel = np.zeros((len(X), len(X)))
+        self.calculate_kernel()
+
+    def calculate_kernel(self):
+        N = len(self.X)
+        for i in range(N):
+            for j in range(N):
+                self.kernel[i][j] = self.kernel_function(self.X[i], self.X[j])
 
     def objectiveFunction(self, x):
         result = 0
@@ -41,16 +50,6 @@ class SVM:
         for i in len(X):
             result+=alpha[i]*y[i]*kernel_func(X[i], x)
         return result
-
-    def gradient(X, y, w, C):
-        grad = np.zeros(len(w))
-        dist = 1 - y * np.dot(X, w)
-        for ind, d in enumerate(dist):
-            if max(0, d) == 0:
-                grad+=w
-            else:
-                grad+= w - C * y[ind] * X[ind]
-        return np.sum(grad)
 
     def distance(self):
         dist = np.array([])
@@ -68,12 +67,23 @@ class SVM:
         return result
 
     def train(self):
-        alpha = np.zeros(len(self.X[0]))
-        b = 0
+        N = len(self.X)
+        print("Started training")
+        #cp
+        alpha = cp.Variable(N)
 
-        alpha, b = np.argmin([self.distance()+self.error_m+self.omega() for x in self.X])
+        obj_func = 0
+        for i in range(N):
+            for j in range(N):
+                obj_func-=1/2 * alpha[i]*alpha[j]*self.Y[i]*self.Y[j]*self.kernel[i][j]
+            obj_func += np.sum(alpha)
 
-        return (alpha, b)
+        objective = cp.Maximize(obj_func)
+        constraints = [alpha[i]<self.C for i in range(N)]
+        problem = cp.Problem(objective, constraints)
+        result = problem.solve()
+
+        return alpha
 
 
 def main(filename):
@@ -89,13 +99,14 @@ def main(filename):
     kernel_function = partial(gausian_kernel, gamma=5)
 
     svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), 0.0001, kernel_function)
-    alpha, b = svm.train()
+    alpha = svm.train()
 
-    Y_pred = []
-    for x in X_valid.to_numpy():
-        Y_pred.append(np.sign(sum([(alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train.to_numpy()[i], x)) for i in range(len(X_train))])))
+    print(alpha)
+    # Y_pred = []
+    # for x in X_valid.to_numpy():
+    #     Y_pred.append(np.sign()) #zmienic
 
-    print(accuracy_score(Y_valid, Y_pred))
+    # print(accuracy_score(Y_valid, Y_pred))
 
 
 if __name__=="__main__":
