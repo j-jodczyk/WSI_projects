@@ -14,6 +14,8 @@ import numpy as np
 from functools import partial
 import cvxopt as cvx
 
+#TODO druga karnel function
+
 
 def discretization(dataframe):
     dataframe['quality'].values[dataframe['quality'] <= 5] = -1
@@ -89,6 +91,8 @@ class SVM:
         return alpha
 
 
+
+
 def main(filename):
     df = pd.read_csv(filename, delimiter=';', low_memory=False)
     discretization(df)
@@ -105,11 +109,11 @@ def main(filename):
     alpha = svm.train()
 
     print(alpha)
-    # Y_pred = []
-    # for x in X_valid.to_numpy():
-    #     Y_pred.append(np.sign()) #zmienic
+    Y_pred = []
+    for x in X_valid.to_numpy():
+         Y_pred.append(np.sign(np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train.to_numpy()[i], x) for i in range(len(alpha))])))
 
-    # print(accuracy_score(Y_valid, Y_pred))
+    print(accuracy_score(Y_valid, Y_pred))
 
 
 if __name__=="__main__":
