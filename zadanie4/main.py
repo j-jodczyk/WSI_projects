@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score
 import pandas as pd
 import numpy as np
 from functools import partial
-import cvxpy as cp
+import cvxopt as cvx
 
 
 def discretization(dataframe):
@@ -69,20 +69,23 @@ class SVM:
     def train(self):
         N = len(self.X)
         print("Started training")
-        #cp
-        alpha = cp.Variable(N)
-
-        obj_func = 0
+        #what is even happening
+        H = np.zeros((N, N))
         for i in range(N):
             for j in range(N):
-                obj_func-=1/2 * alpha[i]*alpha[j]*self.Y[i]*self.Y[j]*self.kernel[i][j]
-            obj_func += np.sum(alpha)
+                H[i][j] = self.Y[i]*self.Y[j]*self.kernel[i][j]
+        A = self.Y.reshape(1, -1)
+        A = A.astype('float')
 
-        objective = cp.Maximize(obj_func)
-        constraints = [alpha[i]<self.C for i in range(N)]
-        problem = cp.Problem(objective, constraints)
-        result = problem.solve()
+        P = cvx.matrix(H)
+        q = cvx.matrix(np.ones(N) * -1)
+        G = cvx.matrix(np.negative(np.eye(N)))
+        h = cvx.matrix(np.zeros(N))
+        A = cvx.matrix(A)
+        b = cvx.matrix(0.0)
 
+        solution = cvx.solvers.qp(P, q, G, h, A, b)
+        alpha = np.array(solution["x"])
         return alpha
 
 
@@ -98,7 +101,7 @@ def main(filename):
 
     kernel_function = partial(gausian_kernel, gamma=5)
 
-    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), 0.0001, kernel_function)
+    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), 1, kernel_function)
     alpha = svm.train()
 
     print(alpha)
