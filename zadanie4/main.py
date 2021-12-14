@@ -14,16 +14,16 @@ import numpy as np
 from functools import partial
 import cvxopt as cvx
 
-#TODO druga karnel function
-
 
 def discretization(dataframe):
     dataframe['quality'].values[dataframe['quality'] <= 5] = -1
     dataframe['quality'].values[dataframe['quality'] > 5] = 1
 
 def gausian_kernel(u, v, gamma):
-        return np.exp(gamma * (-np.linalg.norm(u-v)**2))
+    return np.exp(gamma * (-np.linalg.norm(u-v)**2))
 
+def linear_kernel(u, v):
+    return np.dot(u, v)
 
 class SVM:
     def __init__(self, X, Y, C, kernel_function):
@@ -41,48 +41,17 @@ class SVM:
             for j in range(N):
                 self.kernel[i][j] = self.kernel_function(self.X[i], self.X[j])
 
-    def objectiveFunction(self, x):
-        result = 0
-        for i in range(len(self.X)) :
-            result+=self.alpha[i]*self.Y[i]*self.kernel_function(self.X[i], x)
-        return result
-
-    def kernel_trick(alpha, y, x, X, kernel_func):
-        result = 0
-        for i in len(X):
-            result+=alpha[i]*y[i]*kernel_func(X[i], x)
-        return result
-
-    def distance(self):
-        dist = np.array([])
-        for i in range(len(self.X)):
-            d = 1 - self.Y[i]*self.objectiveFunction(self.X[i])
-            np.append(dist, d)
-        dist[dist<0]=0
-        return dist
-
-    def omega(self):
-        result = 0
-        for i in range(len(self.X)):
-            for j in range(len(self.X)):
-                result+=self.alpha[i]*self.alpha[j]*self.Y[i]*self.Y[j]*self.kernel_function(self.X[i], self.X[j])
-        return result
-
     def train(self):
         N = len(self.X)
         print("Started training")
-        #what is even happening
-        H = np.zeros((N, N))
-        for i in range(N):
-            for j in range(N):
-                H[i][j] = self.Y[i]*self.Y[j]*self.kernel[i][j]
-        A = self.Y.reshape(1, -1)
+
+        A = self.Y.reshape(1, N)
         A = A.astype('float')
 
-        P = cvx.matrix(H)
-        q = cvx.matrix(np.ones(N) * -1)
-        G = cvx.matrix(np.negative(np.eye(N)))
-        h = cvx.matrix(np.zeros(N))
+        P = cvx.matrix((np.matmul(self.Y,np.transpose(self.Y)) * self.kernel))
+        q = cvx.matrix(-np.ones((N,1)))
+        G = cvx.matrix(np.vstack((np.eye(N) * -1, np.eye(N))))
+        h = cvx.matrix(np.hstack((np.zeros(N), np.ones(N) * self.C)))
         A = cvx.matrix(A)
         b = cvx.matrix(0.0)
 
@@ -100,21 +69,21 @@ def main(filename):
     Y = df['quality']
 
     # split data into train set 0.8, test set 0.1 and validation set 0.1
-    X_train, X_rem, Y_train, Y_rem = train_test_split(X,Y, train_size=0.8)
-    X_valid, X_test, Y_valid, Y_test = train_test_split(X_rem, Y_rem, test_size=0.5)
+    X_train, X_test, Y_train, Y_test = train_test_split(X,Y, train_size=0.8)
 
-    kernel_function = partial(gausian_kernel, gamma=5)
+    kernel_function = partial(gausian_kernel, gamma=15)
+    kernel_function = linear_kernel
 
-    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), 1, kernel_function)
+    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), 0.005, kernel_function)
     alpha = svm.train()
 
     print(alpha)
     Y_pred = []
-    for x in X_valid.to_numpy():
+    for x in X_test.to_numpy():
          Y_pred.append(np.sign(np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train.to_numpy()[i], x) for i in range(len(alpha))])))
 
-    print(accuracy_score(Y_valid, Y_pred))
+    print(accuracy_score(Y_test, Y_pred))
 
 
 if __name__=="__main__":
-    main('/home/julia/PAP/pap/zadanie4/winequality-red.csv')
+    main('/home/julia/PAP/pap/zadanie4/winequality-white.csv')
