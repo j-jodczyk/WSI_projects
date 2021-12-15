@@ -7,8 +7,10 @@
 #metryki jak dobrze dziala algorytm - accuracy
 #zobaczyc jak sie rozklada ocena win - zeby zbior byl zrownowazony
 
+import sys
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn import preprocessing
 import pandas as pd
 import numpy as np
 from functools import partial
@@ -43,18 +45,18 @@ class SVM:
 
     def train(self):
         N = len(self.X)
-        print("Started training")
 
         A = self.Y.reshape(1, N)
         A = A.astype('float')
 
-        P = cvx.matrix((np.matmul(self.Y,np.transpose(self.Y)) * self.kernel))
+        P = cvx.matrix((np.outer(self.Y, self.Y) * self.kernel))
         q = cvx.matrix(-np.ones((N,1)))
         G = cvx.matrix(np.vstack((np.eye(N) * -1, np.eye(N))))
         h = cvx.matrix(np.hstack((np.zeros(N), np.ones(N) * self.C)))
         A = cvx.matrix(A)
         b = cvx.matrix(0.0)
 
+        cvx.solvers.options['show_progress'] = False
         solution = cvx.solvers.qp(P, q, G, h, A, b)
         alpha = np.array(solution["x"])
         return alpha
@@ -62,7 +64,7 @@ class SVM:
 
 
 
-def main(filename):
+def main(filename, kernel, C, gamma=1):
     df = pd.read_csv(filename, delimiter=';', low_memory=False)
     discretization(df)
     X = df.drop(columns=['quality']).copy()
@@ -71,19 +73,26 @@ def main(filename):
     # split data into train set 0.8, test set 0.1 and validation set 0.1
     X_train, X_test, Y_train, Y_test = train_test_split(X,Y, train_size=0.8)
 
-    kernel_function = partial(gausian_kernel, gamma=15)
-    kernel_function = linear_kernel
+    if kernel == 'gausian_kernel':
+        kernel_function = partial(gausian_kernel, gamma)
+        mess = f'C: {C}, gamma: {gamma}, '
+    else:
+        kernel_function = linear_kernel
+        mess = f'C: {C}, '
 
-    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), 0.005, kernel_function)
+    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), C, kernel_function)
     alpha = svm.train()
 
-    print(alpha)
     Y_pred = []
     for x in X_test.to_numpy():
-         Y_pred.append(np.sign(np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train.to_numpy()[i], x) for i in range(len(alpha))])))
+        Y_pred.append(np.sign(np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train.to_numpy()[i], x) for i in range(len(alpha))])))
 
-    print(accuracy_score(Y_test, Y_pred))
+    print( mess+f'acc: {accuracy_score(Y_test, Y_pred)}\n')
 
 
 if __name__=="__main__":
-    main('/home/julia/PAP/pap/zadanie4/winequality-white.csv')
+    filename = f'/home/julia/PAP/pap/zadanie4/{sys.argv[1]}'
+    kernel = sys.argv[2]
+    C = sys.argv[3]
+    gamma = sys.argv[4] if sys.argv[4] else 1
+    main(filename, kernel, C, gamma)
