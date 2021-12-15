@@ -10,7 +10,6 @@
 import sys
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-from sklearn import preprocessing
 import pandas as pd
 import numpy as np
 from functools import partial
@@ -27,6 +26,7 @@ def gausian_kernel(u, v, gamma):
 def linear_kernel(u, v):
     return np.dot(u, v)
 
+
 class SVM:
     def __init__(self, X, Y, C, kernel_function):
         self.X = X
@@ -34,7 +34,7 @@ class SVM:
         self.C = C
         self.kernel_function = kernel_function
         self.alpha = np.zeros(len(X))
-        self.kernel = np.zeros((len(X), len(X)))
+        self.kernel = np.zeros((len(X), len(X)), dtype=float)
         self.calculate_kernel()
 
     def calculate_kernel(self):
@@ -62,9 +62,12 @@ class SVM:
         return alpha
 
 
+def main(argv):
+    filename = f'/home/julia/PAP/pap/zadanie4/{sys.argv[1]}'
+    kernel = sys.argv[2]
+    C = float(sys.argv[3])
+    gamma = float(sys.argv[4]) if sys.argv[4] else 1.0
 
-
-def main(filename, kernel, C, gamma=1):
     df = pd.read_csv(filename, delimiter=';', low_memory=False)
     discretization(df)
     X = df.drop(columns=['quality']).copy()
@@ -74,7 +77,7 @@ def main(filename, kernel, C, gamma=1):
     X_train, X_test, Y_train, Y_test = train_test_split(X,Y, train_size=0.8)
 
     if kernel == 'gausian_kernel':
-        kernel_function = partial(gausian_kernel, gamma)
+        kernel_function = partial(gausian_kernel, gamma=gamma)
         mess = f'C: {C}, gamma: {gamma}, '
     else:
         kernel_function = linear_kernel
@@ -91,8 +94,8 @@ def main(filename, kernel, C, gamma=1):
 
 
 if __name__=="__main__":
-    filename = f'/home/julia/PAP/pap/zadanie4/{sys.argv[1]}'
-    kernel = sys.argv[2]
-    C = sys.argv[3]
-    gamma = sys.argv[4] if sys.argv[4] else 1
-    main(filename, kernel, C, gamma)
+    main(sys.argv)
+    # argv[1] = filename
+    # argv[2] = kernel functon: linear or gausian_kernal
+    # argv[3] = C
+    # argv[4] = gamma
