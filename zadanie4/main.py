@@ -10,10 +10,12 @@
 import sys
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn import preprocessing
 import pandas as pd
 import numpy as np
 from functools import partial
-import cvxopt as cvx
+import cvxopt
+
 
 
 def discretization(dataframe):
@@ -44,22 +46,39 @@ class SVM:
                 self.kernel[i][j] = self.kernel_function(self.X[i], self.X[j])
 
     def train(self):
-        N = len(self.X)
 
-        A = self.Y.reshape(1, N)
-        A = A.astype('float')
+        n_samples, n_features = self.X.shape
+        P = cvxopt.matrix(np.outer(self.Y,self.Y) * self.kernel, tc='d') #type code dubble
+        q = cvxopt.matrix(np.ones(n_samples) * -1)
+        A = cvxopt.matrix(self.Y, (1, n_samples), tc='d')
+        b = cvxopt.matrix(0.0)
+        tmp1 = np.identity(n_samples) *(-1)
+        tmp2 = np.identity(n_samples)
+        G = cvxopt.matrix(np.vstack((tmp1, tmp2)))
+        tmp1 = np.zeros(n_samples)
+        tmp2 = np.ones(n_samples) * self.C
+        h = cvxopt.matrix(np.hstack((tmp1, tmp2)))
 
-        P = cvx.matrix((np.outer(self.Y, self.Y) * self.kernel))
-        q = cvx.matrix(-np.ones((N,1)))
-        G = cvx.matrix(np.vstack((np.eye(N) * -1, np.eye(N))))
-        h = cvx.matrix(np.hstack((np.zeros(N), np.ones(N) * self.C)))
-        A = cvx.matrix(A)
-        b = cvx.matrix(0.0)
-
-        cvx.solvers.options['show_progress'] = False
-        solution = cvx.solvers.qp(P, q, G, h, A, b)
+        cvxopt.solvers.options['show_progress'] = False
+        solution = cvxopt.solvers.qp(P, q, G, h, A, b)
         alpha = np.array(solution["x"])
-        return alpha
+
+        a = np.ravel(solution['x'])
+
+        sv = a > 1e-5
+        ind = np.arange(len(a))[sv]
+        a1 = a[sv]
+        sv1 = self.X[sv]
+        sv_y = self.Y[sv]
+
+        # Intercept
+        b = 0
+        for n in range(len(a1)):
+            b += sv_y[n]
+            b -= np.sum(a1 * sv_y * self.kernel[ind[n],sv])
+        b /= len(a)
+
+        return (alpha, b)
 
 
 def main(argv):
@@ -71,6 +90,7 @@ def main(argv):
     df = pd.read_csv(filename, delimiter=';', low_memory=False)
     discretization(df)
     X = df.drop(columns=['quality']).copy()
+    X = preprocessing.normalize(X, axis=0)
     Y = df['quality']
 
     # split data into train set 0.8, test set 0.1 and validation set 0.1
@@ -83,12 +103,13 @@ def main(argv):
         kernel_function = linear_kernel
         mess = f'C: {C}, '
 
-    svm = SVM(X_train.to_numpy(), Y_train.to_numpy(), C, kernel_function)
-    alpha = svm.train()
+    svm = SVM(X_train, Y_train.to_numpy(), C, kernel_function)
+    alpha, b = svm.train()
 
     Y_pred = []
-    for x in X_test.to_numpy():
-        Y_pred.append(np.sign(np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train.to_numpy()[i], x) for i in range(len(alpha))])))
+    for x in X_test:
+        temp = np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train[i], x) for i in range(len(alpha))])
+        Y_pred.append(np.sign(temp + b))
 
     print( mess+f'acc: {accuracy_score(Y_test, Y_pred)}\n')
 
