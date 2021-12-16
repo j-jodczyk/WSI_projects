@@ -30,55 +30,62 @@ def linear_kernel(u, v):
 
 
 class SVM:
-    def __init__(self, X, Y, C, kernel_function):
-        self.X = X
-        self.Y = Y
+    def __init__(self, X_train, Y_train, X_test, Y_test, C, kernel_function, min_alpha=None):
+        self.X_train = X_train
+        self.Y_train = Y_train
+        self.X_test = X_test
+        self.Y_test = Y_test
         self.C = C
+        self.min_alpha = min_alpha if min_alpha else 1e-5
         self.kernel_function = kernel_function
-        self.alpha = np.zeros(len(X))
-        self.kernel = np.zeros((len(X), len(X)), dtype=float)
+        self.alpha = np.zeros(len(X_train))
+        self.b = 0
+        self.kernel = np.zeros((len(X_train), len(X_train)), dtype=float)
         self.calculate_kernel()
 
     def calculate_kernel(self):
-        N = len(self.X)
+        N = len(self.X_train)
         for i in range(N):
             for j in range(N):
-                self.kernel[i][j] = self.kernel_function(self.X[i], self.X[j])
+                self.kernel[i][j] = self.kernel_function(self.X_train[i], self.X_train[j])
 
     def train(self):
 
-        n_samples, n_features = self.X.shape
-        P = cvxopt.matrix(np.outer(self.Y,self.Y) * self.kernel, tc='d') #type code dubble
+        n_samples, n_features = self.X_train.shape
+        P = cvxopt.matrix(np.outer(self.Y_train,self.Y_train) * self.kernel, tc='d') #type code dubble
         q = cvxopt.matrix(np.ones(n_samples) * -1)
-        A = cvxopt.matrix(self.Y, (1, n_samples), tc='d')
+        A = cvxopt.matrix(self.Y_train, (1, n_samples), tc='d')
         b = cvxopt.matrix(0.0)
-        tmp1 = np.identity(n_samples) *(-1)
-        tmp2 = np.identity(n_samples)
-        G = cvxopt.matrix(np.vstack((tmp1, tmp2)))
-        tmp1 = np.zeros(n_samples)
-        tmp2 = np.ones(n_samples) * self.C
-        h = cvxopt.matrix(np.hstack((tmp1, tmp2)))
+        G = cvxopt.matrix(np.vstack((np.eye(n_samples) * -1, np.eye(n_samples))))
+        h = cvxopt.matrix(np.hstack((np.zeros(n_samples), np.ones(n_samples) * self.C)))
 
         cvxopt.solvers.options['show_progress'] = False
         solution = cvxopt.solvers.qp(P, q, G, h, A, b)
-        alpha = np.array(solution["x"])
 
-        a = np.ravel(solution['x'])
+        alpha = np.ravel(solution['x'])
 
-        sv = a > 1e-5
-        ind = np.arange(len(a))[sv]
-        a1 = a[sv]
-        sv1 = self.X[sv]
-        sv_y = self.Y[sv]
+        # support vectors have non zero alpha values
+        idx = alpha > self.min_alpha
+        self.alpha = alpha[idx]
+        self.new_x = self.X_train[idx]
+        self.new_y = self.Y_train[idx]
 
-        # Intercept
-        b = 0
-        for n in range(len(a1)):
-            b += sv_y[n]
-            b -= np.sum(a1 * sv_y * self.kernel[ind[n],sv])
-        b /= len(a)
+        self.b = self.new_y[0]
+        for i in range(len(self.alpha)):
+            self.b -= self.alpha[i] * self.new_y[i] * self.kernel[i][0]
 
-        return (alpha, b)
+        return (self.alpha, self.b)
+
+    def predict(self):
+        self.alpha, self.b = self.train()
+        Y_pred = []
+        for x in self.X_test:
+            temp = np.sum([self.alpha[i]*self.new_y[i]*self.kernel_function(self.new_x[i], x)
+            for i in range(len(self.alpha))])
+            Y_pred.append(np.sign(temp + self.b))
+
+        return accuracy_score(self.Y_test, Y_pred)
+
 
 
 def main(argv):
@@ -93,25 +100,21 @@ def main(argv):
     X = preprocessing.normalize(X, axis=0)
     Y = df['quality']
 
-    # split data into train set 0.8, test set 0.1 and validation set 0.1
-    X_train, X_test, Y_train, Y_test = train_test_split(X,Y, train_size=0.8)
+    # split data into train set 0.8, test set 0.2
+    X_train, X_test, Y_train, Y_test = train_test_split(X,Y, train_size=0.8, random_state=10)
 
     if kernel == 'gausian_kernel':
         kernel_function = partial(gausian_kernel, gamma=gamma)
-        mess = f'C: {C}, gamma: {gamma}, '
     else:
         kernel_function = linear_kernel
-        mess = f'C: {C}, '
 
-    svm = SVM(X_train, Y_train.to_numpy(), C, kernel_function)
-    alpha, b = svm.train()
+    svm = SVM(X_train, Y_train.to_numpy(), X_test, Y_test.to_numpy(), C, kernel_function)
 
-    Y_pred = []
-    for x in X_test:
-        temp = np.sum([alpha[i]*Y_train.to_numpy()[i]*kernel_function(X_train[i], x) for i in range(len(alpha))])
-        Y_pred.append(np.sign(temp + b))
-
-    print( mess+f'acc: {accuracy_score(Y_test, Y_pred)}\n')
+    accuracy_score = svm.predict()
+    if kernel == 'gausian_kernel':
+        print(C, gamma, accuracy_score)
+    else:
+        print(C, accuracy_score)
 
 
 if __name__=="__main__":
