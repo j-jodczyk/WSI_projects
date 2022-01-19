@@ -19,10 +19,10 @@ class Agent():
     def choose_action(self, state, param, env):
         if self.policy == "greedy":
             exploration = np.random.random(1)[0]
-            if exploration > param:
-                action = np.argmax(self.Q_table[state, :])
+            if exploration > param: # large param -> explore
+                action = np.argmax(self.Q_table[state, :]) # exploit
             else:
-                action = env.action_space.sample()
+                action = env.action_space.sample() # explore
         else:
             exp_sum = np.sum([np.exp(self.Q_table[state, a]/param) for a in range(len(self.Q_table[state]))])
             action_probs = [(np.exp(self.Q_table[state, a]/param))/exp_sum for a in range(len(self.Q_table[state]))]
@@ -44,14 +44,14 @@ def main():
     states = env.observation_space.n
 
     #params
-    train_episodes = 50000
+    train_episodes = 10000
     test_episodes = 100
     steps = 100
-    learning_rate = 0.3
-    discount_rate = 0.6             # the larger the dr, the more agent cares about long term reward
-    exploration_rate = 0.3
-    temperature = 500
-    policy = "greedy"
+    learning_rate = 1
+    discount_rate = 0.9            # the larger the dr, the more agent cares about long term reward
+    exploration_rate = 0.5
+    temperature = 30
+    policy = "boltzmann"           # boltzmann or greedy
 
 
     avg_steps = 0
@@ -90,16 +90,18 @@ def main():
 
             for step in range(steps):
                 action = np.argmax(agent.Q_table[state, :])
-                next_step, reward, done, info = env.step(action)
+                next_state, reward, done, info = env.step(action)
 
                 reward_eval += reward
 
                 if done:
+                    agent.Q_table[next_state, :] = 0
                     rewards.append(reward_eval)
                     steps_eval += step
                     break
 
-                state = next_step
+                state = next_state
+
         env.close()
         avg_steps += steps_eval
         avg_reward += sum(rewards)/test_episodes
