@@ -27,6 +27,7 @@ class Agent():
             exp_sum = np.sum([np.exp(self.Q_table[state, a]/param) for a in range(len(self.Q_table[state]))])
             action_probs = [(np.exp(self.Q_table[state, a]/param))/exp_sum for a in range(len(self.Q_table[state]))]
             action = np.random.choice(list(range(len(self.Q_table[state, :]))), p=action_probs)
+
         return action
 
 
@@ -48,66 +49,55 @@ def main():
     test_episodes = 100
     steps = 100
     learning_rate = 1
-    discount_rate = 0.9            # the larger the dr, the more agent cares about long term reward
-    exploration_rate = 0.5
-    temperature = 30
+    discount_rate = 0.1            # the larger the dr, the more agent cares about long term reward
+    exploration_rate = 0.1
+    temperature = 0.1
     policy = "boltzmann"           # boltzmann or greedy
 
 
     avg_steps = 0
     avg_reward = 0
-    for i in range(20):
+    for i in range(5):
 
         agent = Agent(actions, states, learning_rate, discount_rate, policy)
 
+        rewards = []
+        steps_eval = 0
         for episode in range(train_episodes):
             state = env.reset()
             done = False
 
+            reward_eval = 0
+
             for step in range(steps):
+
                 # decision if we explore or exploit
                 param = exploration_rate if agent.policy == "greedy" else temperature
                 action = agent.choose_action(state, param, env)
                 # execute action and see what happens
-                next_step, reward, done, info = env.step(action)
-
-                # update Q_table
-                agent.update_table(state, action, reward, next_step)
-
-                state = next_step
-
-                if done:
-                    break
-
-        # tests:
-        rewards = []
-        for episode in range(test_episodes):
-            state = env.reset()
-            done = False
-
-            steps_eval = 0
-            reward_eval = 0
-
-            for step in range(steps):
-                action = np.argmax(agent.Q_table[state, :])
                 next_state, reward, done, info = env.step(action)
 
                 reward_eval += reward
+
+                # update Q_table
+                agent.update_table(state, action, reward, next_state)
+
+                state = next_state
 
                 if done:
                     agent.Q_table[next_state, :] = 0
                     rewards.append(reward_eval)
                     steps_eval += step
                     break
-
-                state = next_state
+            if step == 99:
+                steps_eval += step
 
         env.close()
-        avg_steps += steps_eval
-        avg_reward += sum(rewards)/test_episodes
+        avg_steps += steps_eval/train_episodes
+        avg_reward += sum(rewards)
 
-    print(f"Avg steps: {avg_steps/20}")
-    print(f"Avg reward: {avg_reward/20}")
+    print(f"Avg steps: {avg_steps/5}")
+    print(f"Avg reward: {avg_reward/5}")
 
 
 if __name__=="__main__":
