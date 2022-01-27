@@ -2,6 +2,7 @@
 # Pamiętaj, aby podzielić zbiór danych na zbiór trenujący oraz uczący.
 
 from matplotlib import pyplot as plt
+from scipy import random
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -22,19 +23,19 @@ def mean_and_variance(df):
 def gaussian_probabilities(mean, variance, x):
     return (1/np.sqrt(2*np.pi*variance))*np.exp(-((x-mean)**2/(2*variance)))
 
-def posterior_probabilities(row, mean, variance, types, samples):
+def likelyhood(row, mean, variance, types, samples):
     posterior_probs = []
     for i in range(len(types)):
-        p = 0
+        p = 1
 
         for j in range(samples):
-            p += np.log(gaussian_probabilities(mean[i][j], variance[i][j], row[j]))
+            p *= gaussian_probabilities(mean[i][j], variance[i][j], row[j])
         posterior_probs.append(p)
 
     return posterior_probs
 
 
-def naive_bayes_gaussian(df, X_test):
+def naive_bayes_classifier(df, X_test):
     samples = len(df.columns)-1
     types = sorted(df['type'].unique())
 
@@ -43,10 +44,10 @@ def naive_bayes_gaussian(df, X_test):
 
     Y_pred = []
     for i in range(len(X_test)):
-        posterior = posterior_probabilities(X_test[i], mean, variance, types, samples)
-        probs = prior_probs + posterior
+        likelyhoods = likelyhood(X_test[i], mean, variance, types, samples)
+        posterior = prior_probs * likelyhoods
 
-        max_idx = np.argmax(probs)
+        max_idx = np.argmax(posterior)
 
         Y_pred.append(max_idx)
 
@@ -57,11 +58,10 @@ def main():
     filename = '/home/julia/PAP/pap/zadanie7/iris.csv'
     df = pd.read_csv(filename, delimiter=',', low_memory=False)
 
-    train, test = train_test_split(df, test_size=0.2, random_state=22)
+    train, test = train_test_split(df, test_size=0.2, random_state=59)
     X_test = test.drop(columns=['type']).copy()
 
-    Y_pred = naive_bayes_gaussian(train, X_test.to_numpy())
-    Y_test = test['type'].to_numpy()
+    Y_pred = naive_bayes_classifier(train, X_test.to_numpy())
 
     accuracy_score = len(test.loc[Y_pred == test['type']])/len(test) * 100
     print(accuracy_score)
